@@ -39,7 +39,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run migrations for test database
+      - name: Init migrations for test database
+        run: |
+          dotenv -e .env.test -- npx prisma migrate dev --name init --schema=prisma/schema.prisma
+
+      - name: Deploy migrations for test database
         run: |
           dotenv -e .env.test -- npx prisma migrate deploy --schema=prisma/schema.prisma
 
