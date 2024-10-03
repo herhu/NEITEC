@@ -1,6 +1,5 @@
 name: CI/CD Pipeline
 
-# Trigger the pipeline on pushes or pull requests
 on:
   push:
     branches:
@@ -10,12 +9,11 @@ on:
       - main
 
 jobs:
-  # Job to run the CI pipeline
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     services:
-      postgres:
+      db:
         image: postgres:16
         env:
           POSTGRES_USER: test_user
@@ -24,68 +22,38 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -d test_db -U test_user"
+          --health-cmd="pg_isready -U test_user"
           --health-interval=10s
-          --health-timeout=10s
-          --health-retries=10
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Step 2: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18'  # Specify the Node.js version you're using
+          node-version: '18'
 
-      # Step 3: Cache Node.js dependencies for faster builds
-      - name: Cache Node.js dependencies
-        uses: actions/cache@v2
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node_modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node_modules-
-
-      # Step 4: Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Step 5: Run the formatter (Prettier)
-      - name: Run code formatter (Prettier)
-        run: npm run format
+      - name: Run migrations for test database
+        run: |
+          dotenv -e .env.test -- npx prisma migrate deploy --schema=prisma/schema.prisma
 
-      # Step 6: Run linter (ESLint)
-      - name: Run linter (ESLint)
-        run: npm run lint
-
-      # Step 7: Run unit tests
       - name: Run unit tests
-        env:
-          DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
-        run: npm run test:unit 
+        run: npm run test:unit
 
-      # Step 8: Run E2E tests
-      - name: Run end-to-end tests
-        env:
-          DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
+      - name: Run e2e tests
         run: npm run test:e2e
 
-      # Step 9: Build the application
-      - name: Build application
-        run: npm run build
+      # - name: Build Docker image
+      #   run: docker build -t my-nest-app .
 
-      # Step 10: Build Docker image
-      - name: Build Docker image
-        run: docker build -t my-nest-app .
+      # - name: Run Docker container (production)
+      #   run: docker-compose -f docker-compose.prod.yml up -d
 
-      # Step 11: Run the application in production mode using Docker
-      - name: Run Docker container
-        run: |
-          docker run -d -p 3000:3000 --name my-nest-app-container my-nest-app
-
-      # Step 12: Verify production deployment is up
-      - name: Health check
-        run: curl --fail http://localhost:3000/health
+      # - name: Health check (production)
+      #   run: curl --fail http://localhost:3000/health

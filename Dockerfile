@@ -17,4 +17,5 @@ WORKDIR /usr/src/app
 
 COPY --from=build /usr/src/app .
 
-CMD ["node", "dist/main.js"]
+# Run migrations before starting the application
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
