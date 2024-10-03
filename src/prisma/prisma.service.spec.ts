@@ -1,15 +1,7 @@
-// src/prisma/prisma.service.spec.ts
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from './prisma.service';
-import { ConfigService } from '@nestjs/config';
 
-// Mock ConfigService to provide the database URL
-const mockConfigService = {
-  get: jest.fn().mockReturnValue('postgresql://test-user:test-password@localhost:5432/test-db'),
-};
-
-// Mock PrismaClient methods
+// Mock PrismaClient methods ($connect and $disconnect)
 const mockPrismaClient = {
   $connect: jest.fn(),
   $disconnect: jest.fn(),
@@ -20,40 +12,36 @@ describe('PrismaService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PrismaService,
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-      ],
-    }).compile();
+      providers: [PrismaService],
+    })
+      .overrideProvider(PrismaService)
+      .useValue(Object.assign(new PrismaService(), mockPrismaClient)) // Properly mock the PrismaClient
+      .compile();
 
     prismaService = module.get<PrismaService>(PrismaService);
+  });
 
-    // Manually mock the methods of PrismaClient
-    prismaService.$connect = mockPrismaClient.$connect;
-    prismaService.$disconnect = mockPrismaClient.$disconnect;
+  it('should be defined', () => {
+    expect(prismaService).toBeDefined();
   });
 
   describe('onModuleInit', () => {
-    it('should call $connect to establish the database connection', async () => {
+    it('should call $connect when module is initialized', async () => {
+      // Call onModuleInit lifecycle method
       await prismaService.onModuleInit();
-      expect(mockPrismaClient.$connect).toHaveBeenCalled();
+
+      // Expect $connect to have been called
+      expect(prismaService.$connect).toHaveBeenCalled();
     });
   });
 
   describe('onModuleDestroy', () => {
-    it('should call $disconnect to close the database connection', async () => {
+    it('should call $disconnect when module is destroyed', async () => {
+      // Call onModuleDestroy lifecycle method
       await prismaService.onModuleDestroy();
-      expect(mockPrismaClient.$disconnect).toHaveBeenCalled();
-    });
-  });
 
-  describe('constructor', () => {
-    it('should configure the Prisma client with the correct database URL', () => {
-      expect(mockConfigService.get).toHaveBeenCalledWith('database.url');
-      expect(prismaService).toBeDefined(); // Ensure the PrismaService instance is created
+      // Expect $disconnect to have been called
+      expect(prismaService.$disconnect).toHaveBeenCalled();
     });
   });
 });

@@ -3,9 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './local-auth.guard';
 import { LoginDto } from './dto/login.dto';
-import { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 // Mocked JWT service to simulate token generation
@@ -15,7 +13,7 @@ const mockJwtService = {
 
 // Mocked AuthService with login functionality
 const mockAuthService = {
-  login: jest.fn((user) => {
+  login: jest.fn(() => {
     return {
       access_token: 'mocked-jwt-token',
     };
@@ -24,7 +22,6 @@ const mockAuthService = {
 
 describe('AuthController', () => {
   let authController: AuthController;
-  let authService: AuthService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -42,7 +39,6 @@ describe('AuthController', () => {
     }).compile();
 
     authController = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
   });
 
   // Test login functionality

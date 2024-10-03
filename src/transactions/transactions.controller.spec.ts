@@ -3,8 +3,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RoleGuard } from '../auth/role.guard';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { TransactionStatus, User } from '@prisma/client';
 
@@ -18,7 +16,6 @@ const mockTransactionsService = {
 
 describe('TransactionsController', () => {
   let transactionsController: TransactionsController;
-  let transactionsService: TransactionsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,14 +29,24 @@ describe('TransactionsController', () => {
     }).compile();
 
     transactionsController = module.get<TransactionsController>(TransactionsController);
-    transactionsService = module.get<TransactionsService>(TransactionsService);
   });
 
   describe('createTransaction', () => {
     it('should create a transaction and return the result', async () => {
-      const user: User = { id: 'user-id', email: 'user@example.com', password: 'password', role: 'USER', createdAt: new Date() };
+      const user: User = {
+        id: 'user-id',
+        email: 'user@example.com',
+        password: 'password',
+        role: 'USER',
+        createdAt: new Date(),
+      };
       const createTransactionDto: CreateTransactionDto = { amount: 100.5 };
-      const mockTransaction = { id: 'transaction-id', userId: 'user-id', amount: 100.5, status: TransactionStatus.PENDING };
+      const mockTransaction = {
+        id: 'transaction-id',
+        userId: 'user-id',
+        amount: 100.5,
+        status: TransactionStatus.PENDING,
+      };
 
       // Mock the service create method
       mockTransactionsService.create.mockResolvedValue(mockTransaction);
@@ -53,8 +60,21 @@ describe('TransactionsController', () => {
 
   describe('getAllTransactions', () => {
     it('should return all transactions for the logged-in user', async () => {
-      const user: User = { id: 'user-id', email: 'user@example.com', password: 'password', role: 'USER', createdAt: new Date() };
-      const mockTransactions = [{ id: 'transaction-id-1', userId: 'user-id', amount: 50, status: TransactionStatus.PENDING }];
+      const user: User = {
+        id: 'user-id',
+        email: 'user@example.com',
+        password: 'password',
+        role: 'USER',
+        createdAt: new Date(),
+      };
+      const mockTransactions = [
+        {
+          id: 'transaction-id-1',
+          userId: 'user-id',
+          amount: 50,
+          status: TransactionStatus.PENDING,
+        },
+      ];
 
       // Mock the service findAllForUser method
       mockTransactionsService.findAllForUser.mockResolvedValue(mockTransactions);
@@ -69,7 +89,12 @@ describe('TransactionsController', () => {
   describe('getAllPendingTransactions', () => {
     it('should return all pending transactions for admin', async () => {
       const mockPendingTransactions = [
-        { id: 'transaction-id-1', userId: 'user-id', amount: 100, status: TransactionStatus.PENDING },
+        {
+          id: 'transaction-id-1',
+          userId: 'user-id',
+          amount: 100,
+          status: TransactionStatus.PENDING,
+        },
       ];
 
       // Mock the service findAllPending method
@@ -106,4 +131,3 @@ describe('TransactionsController', () => {
     });
   });
 });
-

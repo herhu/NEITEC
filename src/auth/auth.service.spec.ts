@@ -51,10 +51,13 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException when invalid credentials are provided', async () => {
       mockUsersService.validateUser.mockResolvedValue(null); // Mock invalid credentials
 
-      await expect(authService.validateUser('invalid@example.com', 'wrongPassword')).rejects.toThrow(
-        new UnauthorizedException('Invalid email or password'),
+      await expect(
+        authService.validateUser('invalid@example.com', 'wrongPassword'),
+      ).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
+      expect(mockUsersService.validateUser).toHaveBeenCalledWith(
+        'invalid@example.com',
+        'wrongPassword',
       );
-      expect(mockUsersService.validateUser).toHaveBeenCalledWith('invalid@example.com', 'wrongPassword');
     });
   });
 
@@ -64,7 +67,10 @@ describe('AuthService', () => {
       const result = await authService.login(mockUser);
 
       expect(result).toEqual({ access_token: 'mocked-jwt-token' });
-      expect(mockJwtService.sign).toHaveBeenCalledWith({ email: 'test@example.com', sub: 'user-id' });
+      expect(mockJwtService.sign).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        sub: 'user-id',
+      });
     });
   });
 });

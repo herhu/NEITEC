@@ -1,12 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest'; // Supertest for making HTTP requests
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+// test/auth.e2e-spec.ts
 
-describe('Auth E2E', () => {
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppModule } from '../src/app.module';
+import * as request from 'supertest';
+import { PrismaService } from '../src/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid'; // To dynamically generate unique user data
+
+describe('AuthController (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
+  let prismaService: PrismaService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -14,92 +18,82 @@ describe('Auth E2E', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    prisma = app.get(PrismaService); // Get PrismaService for database manipulation
+
+    // Use global validation pipe
+    app.useGlobalPipes(new ValidationPipe());
+
+    prismaService = app.get(PrismaService);
 
     await app.init();
   });
 
-  afterEach(async () => {
-    // Clean the users table after each test to maintain test isolation
-    await prisma.$executeRaw`TRUNCATE TABLE users CASCADE`;
-  });
-
   afterAll(async () => {
-    await app.close(); // Close the app after tests
+    // Disconnect Prisma and close the app after tests
+    await prismaService.$disconnect();
+    await app.close();
   });
 
-  describe('POST /users/register', () => {
-    it('should register a new user', async () => {
-      const user = {
-        email: 'user@example.com',
-        password: 'password123',
-        role: 'USER',
-      };
-
-      return request(app.getHttpServer())
-        .post('/users/register')
-        .send(user)
-        .expect(201)
-        .expect((res) => {
-          expect(res.body.email).toBe(user.email); // Check if the correct email is returned
-        });
-    });
-
-    it('should throw a conflict error if email already exists', async () => {
-      const user = {
-        email: 'user@example.com',
-        password: 'password123',
-        role: 'USER',
-      };
-
-      // First registration
-      await request(app.getHttpServer()).post('/users/register').send(user).expect(201);
-
-      // Attempting to register with the same email again
-      return request(app.getHttpServer())
-        .post('/users/register')
-        .send(user)
-        .expect(409); // Expect conflict error
-    });
+  afterEach(async () => {
+    // Clean the user table before each test
+    await prismaService.user.deleteMany({});
   });
 
-  describe('POST /auth/login', () => {
-    it('should log in the user and return a JWT token', async () => {
-      const user = {
-        email: 'user@example.com',
-        password: 'password123',
-      };
+  const createUniqueTestUser = async () => {
+    const email = `${uuidv4()}@example.com`; // Generate a unique email for each test
+    const password = 'password123';
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Register the user first
-      await request(app.getHttpServer()).post('/users/register').send(user).expect(201);
-
-      // Log in the user
-      return request(app.getHttpServer())
-        .post('/auth/login')
-        .send(user)
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.access_token).toBeDefined(); // Check if JWT token is returned
-        });
+    // Create a user with a unique email
+    await prismaService.user.create({
+      data: {
+        email,
+        password: hashedPassword, // Store the hashed password
+        role: 'USER',
+      },
     });
 
-    it('should return 401 for invalid credentials', async () => {
-      const user = {
-        email: 'user@example.com',
+    return { email, password };
+  };
+
+  it('/auth/login (POST) - should log in with valid credentials', async () => {
+    // Create a unique test user
+    const { email, password } = await createUniqueTestUser();
+
+    // Attempt to log in with the correct password
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email,
+        password, // Provide the plain password for login
+      })
+      .expect(200); // Expect 200 OK
+
+    // Ensure the JWT token is returned
+    expect(response.body).toHaveProperty('access_token');
+  });
+
+  it('/auth/login (POST) - should fail with invalid credentials', async () => {
+    // Create a unique test user
+    const { email } = await createUniqueTestUser();
+
+    // Attempt to log in with an invalid password
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email,
+        password: 'wrongpassword', // Provide an incorrect password
+      })
+      .expect(401); // Expect 401 Unauthorized
+  });
+
+  it('/auth/login (POST) - should fail if the user does not exist', async () => {
+    // Attempt to log in with a non-existent user
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'nonexistent@example.com',
         password: 'password123',
-      };
-
-      // Register the user first
-      await request(app.getHttpServer()).post('/users/register').send(user).expect(201);
-
-      // Attempt to login with incorrect password
-      return request(app.getHttpServer())
-        .post('/auth/login')
-        .send({
-          email: 'user@example.com',
-          password: 'wrongPassword',
-        })
-        .expect(401); // Expect unauthorized
-    });
+      })
+      .expect(401); // Expect 401 Unauthorized
   });
 });

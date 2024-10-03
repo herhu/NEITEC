@@ -64,7 +64,12 @@ describe('TransactionsService', () => {
   describe('findAllForUser', () => {
     it('should return all transactions for a specific user', async () => {
       const mockTransactions = [
-        { id: 'transaction-id-1', userId: 'user-id', amount: 50, status: TransactionStatus.PENDING },
+        {
+          id: 'transaction-id-1',
+          userId: 'user-id',
+          amount: 50,
+          status: TransactionStatus.PENDING,
+        },
       ];
 
       // Mock Prisma's findMany method
@@ -93,7 +98,10 @@ describe('TransactionsService', () => {
       mockPrismaService.transaction.findUnique.mockResolvedValue(mockTransaction);
       mockPrismaService.transaction.update.mockResolvedValue(updatedTransaction);
 
-      const result = await transactionsService.updateTransactionStatus('transaction-id', TransactionStatus.APPROVED);
+      const result = await transactionsService.updateTransactionStatus(
+        'transaction-id',
+        TransactionStatus.APPROVED,
+      );
 
       expect(result).toEqual(updatedTransaction);
       expect(prismaService.transaction.findUnique).toHaveBeenCalledWith({
@@ -122,7 +130,12 @@ describe('TransactionsService', () => {
   describe('findAllPending', () => {
     it('should return all pending transactions', async () => {
       const mockPendingTransactions = [
-        { id: 'transaction-id-1', userId: 'user-id', amount: 100, status: TransactionStatus.PENDING },
+        {
+          id: 'transaction-id-1',
+          userId: 'user-id',
+          amount: 100,
+          status: TransactionStatus.PENDING,
+        },
       ];
 
       // Mock Prisma's findMany method

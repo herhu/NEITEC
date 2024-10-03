@@ -1,12 +1,19 @@
-// src/auth/auth.controller.ts
-
-import { Controller, Post, Body, Request, UseGuards, ValidationPipe } from '@nestjs/common';
-import { ApiTags, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger'; // Import Swagger decorators
+import {
+  Controller,
+  Post,
+  Body,
+  Request,
+  UseGuards,
+  ValidationPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger'; 
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
-import { LoginDto } from './dto/login.dto'; // Import LoginDto
+import { LoginDto } from './dto/login.dto'; 
 
-@ApiTags('Auth') // Group this controller under "Auth" in Swagger
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -16,8 +23,9 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Login successful, returns JWT token' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @UseGuards(LocalAuthGuard) // Guard applied to validate user credentials using LocalStrategy
+  @HttpCode(HttpStatus.OK) // Explicitly set HTTP status to 200 OK
   @Post('login')
-  async login(@Body(ValidationPipe) loginDto: LoginDto, @Request() req) {
+  async login(@Body(ValidationPipe) _loginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user); // Return JWT token if valid
   }
 }

@@ -10,8 +10,8 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  // Register a new user
-  async createUser(createUserDto: CreateUserDto): Promise<User> {
+  // Adjust return type to exclude the password field
+  async createUser(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
     const { email, password, role } = createUserDto;
 
     // Hash the password
@@ -22,19 +22,22 @@ export class UsersService {
 
     try {
       // Create the user in the database
-      return await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: {
           email,
           password: hashedPassword,
-          role: userRole, // Dynamically assign the role
+          role: userRole,
         },
       });
+
+      // Exclude the password from the returned object
+      const { password: _, ...result } = user;
+      return result; // Return the user object without the password
     } catch (error) {
       if (error.code === 'P2002') {
-        // P2002 is the unique constraint violation error code in Prisma
         throw new ConflictException('Email already exists');
       }
-      throw error; // Re-throw other unexpected errors
+      throw error;
     }
   }
 

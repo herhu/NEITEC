@@ -1,10 +1,8 @@
-// src/users/users.service.spec.ts
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
-import { User, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 // Mock PrismaService
@@ -41,7 +39,7 @@ describe('UsersService', () => {
   });
 
   describe('createUser', () => {
-    it('should successfully create a new user', async () => {
+    it('should successfully create a new user without returning the password', async () => {
       const createUserDto = { email: 'user@example.com', password: 'password123', role: Role.USER };
       const mockUser = {
         id: 'user-id',
@@ -53,13 +51,16 @@ describe('UsersService', () => {
 
       // Mock bcrypt to return a hashed password
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
-      
+
       // Mock Prisma's user.create method
       mockPrismaService.user.create.mockResolvedValue(mockUser);
 
       const result = await usersService.createUser(createUserDto);
 
-      expect(result).toEqual(mockUser);
+      // Exclude the password field from the expected result
+      const { password: _, ...expectedUser } = mockUser;
+
+      expect(result).toEqual(expectedUser);
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: createUserDto.email,
@@ -71,7 +72,11 @@ describe('UsersService', () => {
     });
 
     it('should throw a ConflictException if email already exists', async () => {
-      const createUserDto = { email: 'existing@example.com', password: 'password123', role: Role.USER };
+      const createUserDto = {
+        email: 'existing@example.com',
+        password: 'password123',
+        role: Role.USER,
+      };
 
       // Mock Prisma to throw a unique constraint violation error
       mockPrismaService.user.create.mockRejectedValue({

@@ -32,7 +32,11 @@ describe('UsersController', () => {
 
   describe('register', () => {
     it('should successfully register a new user', async () => {
-      const createUserDto: CreateUserDto = { email: 'user@example.com', password: 'password123', role: 'USER' };
+      const createUserDto: CreateUserDto = {
+        email: 'user@example.com',
+        password: 'password123',
+        role: 'USER',
+      };
       const mockUser = {
         id: 'user-id',
         email: 'user@example.com',
@@ -50,7 +54,11 @@ describe('UsersController', () => {
     });
 
     it('should throw a ConflictException if the email already exists', async () => {
-      const createUserDto: CreateUserDto = { email: 'existing@example.com', password: 'password123', role: 'USER' };
+      const createUserDto: CreateUserDto = {
+        email: 'existing@example.com',
+        password: 'password123',
+        role: 'USER',
+      };
 
       // Mock the service to throw ConflictException when trying to create a user with an existing email
       mockUsersService.createUser.mockRejectedValue(new ConflictException('Email already exists'));

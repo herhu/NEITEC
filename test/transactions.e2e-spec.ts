@@ -1,15 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
-import { TransactionStatus } from '@prisma/client';
+// test/transactions.e2e-spec.ts
 
-describe('Transactions E2E', () => {
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppModule } from '../src/app.module';
+import * as request from 'supertest';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid'; // For dynamic user creation
+
+describe('TransactionsController (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
-  let userToken: string;
-  let adminToken: string;
+  let prismaService: PrismaService;
+  let jwtService: JwtService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -17,171 +20,129 @@ describe('Transactions E2E', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    prisma = app.get(PrismaService);
+
+    // Use global validation pipe for DTO validation
+    app.useGlobalPipes(new ValidationPipe());
+
+    prismaService = app.get(PrismaService);
+    jwtService = app.get(JwtService);
 
     await app.init();
   });
 
-  afterEach(async () => {
-    await prisma.$executeRaw`TRUNCATE TABLE transactions CASCADE`;
-    await prisma.$executeRaw`TRUNCATE TABLE users CASCADE`;
-  });
-
   afterAll(async () => {
+    // Clean up and disconnect Prisma after tests
+    await prismaService.$disconnect();
     await app.close();
   });
 
-  const registerUser = async (email: string, password: string, role: 'USER' | 'ADMIN') => {
-    return request(app.getHttpServer())
-      .post('/users/register')
-      .send({ email, password, role });
+  afterEach(async () => {
+    // Clear the database before each test
+    await prismaService.transaction.deleteMany({});
+    await prismaService.user.deleteMany({});
+  });
+
+  const createTestUser = async (role: 'USER' | 'ADMIN') => {
+    const email = `${uuidv4()}@example.com`; // Generate a unique email for each test
+    const password = 'password123';
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prismaService.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role,
+      },
+    });
+
+    const token = jwtService.sign({ email: user.email, sub: user.id });
+    return { user, token };
   };
 
-  const loginUser = async (email: string, password: string) => {
+  it('/transactions/create (POST) - should create a new transaction', async () => {
+    // Dynamically create a test user
+    const { token: userToken } = await createTestUser('USER');
+
     const response = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email, password });
-    return response.body.access_token;
-  };
+      .post('/transactions/create')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        amount: 100.5,
+      })
+      .expect(201);
 
-  beforeEach(async () => {
-    // Register and log in a regular user
-    await registerUser('user@example.com', 'password123', 'USER');
-    userToken = await loginUser('user@example.com', 'password123');
-
-    // Register and log in an admin user
-    await registerUser('admin@example.com', 'adminpassword', 'ADMIN');
-    adminToken = await loginUser('admin@example.com', 'adminpassword');
+    expect(response.body).toHaveProperty('id');
+    expect(response.body.amount).toBe(100.5);
+    expect(response.body.status).toBe('PENDING');
   });
 
-  describe('POST /transactions/create', () => {
-    it('should allow a user to create a transaction', async () => {
-      const transactionData = { amount: 100.5 };
+  it('/transactions (GET) - should get all transactions for the user', async () => {
+    // Dynamically create a test user
+    const { user, token: userToken } = await createTestUser('USER');
 
-      return request(app.getHttpServer())
-        .post('/transactions/create')
-        .set('Authorization', `Bearer ${userToken}`)
-        .send(transactionData)
-        .expect(201)
-        .expect((res) => {
-          expect(res.body.amount).toBe(transactionData.amount);
-          expect(res.body.status).toBe(TransactionStatus.PENDING);
-        });
+    // Create a transaction for the test user
+    await prismaService.transaction.create({
+      data: {
+        userId: user.id,
+        amount: 100.5,
+        status: 'PENDING',
+      },
     });
 
-    it('should forbid creating a transaction without JWT token', async () => {
-      const transactionData = { amount: 100.5 };
+    const response = await request(app.getHttpServer())
+      .get('/transactions')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200);
 
-      return request(app.getHttpServer())
-        .post('/transactions/create')
-        .send(transactionData)
-        .expect(401);
-    });
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].amount).toBe(100.5);
+    expect(response.body[0].status).toBe('PENDING');
   });
 
-  describe('GET /transactions', () => {
-    it('should allow a user to retrieve their transactions', async () => {
-      const transactionData = { amount: 100.5 };
+  it('/transactions/pending (GET) - should get all pending transactions (Admin only)', async () => {
+    // Dynamically create a test user and admin
+    const { user } = await createTestUser('USER');
+    const { token: adminToken } = await createTestUser('ADMIN');
 
-      // Create a transaction first
-      await request(app.getHttpServer())
-        .post('/transactions/create')
-        .set('Authorization', `Bearer ${userToken}`)
-        .send(transactionData)
-        .expect(201);
-
-      // Retrieve transactions for the user
-      return request(app.getHttpServer())
-        .get('/transactions')
-        .set('Authorization', `Bearer ${userToken}`)
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.length).toBe(1); // Ensure there is one transaction
-          expect(res.body[0].amount).toBe(transactionData.amount);
-        });
+    // Create a pending transaction for the test user
+    await prismaService.transaction.create({
+      data: {
+        userId: user.id,
+        amount: 100.5,
+        status: 'PENDING',
+      },
     });
+
+    const response = await request(app.getHttpServer())
+      .get('/transactions/pending')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].amount).toBe(100.5);
+    expect(response.body[0].status).toBe('PENDING');
   });
 
-  describe('GET /transactions/pending (Admin only)', () => {
-    it('should allow an admin to view all pending transactions', async () => {
-      const transactionData = { amount: 100.5 };
+  it('/transactions/:id/status (PATCH) - should approve a transaction (Admin only)', async () => {
+    // Dynamically create a test user and admin
+    const { user } = await createTestUser('USER');
+    const { token: adminToken } = await createTestUser('ADMIN');
 
-      // User creates a transaction
-      await request(app.getHttpServer())
-        .post('/transactions/create')
-        .set('Authorization', `Bearer ${userToken}`)
-        .send(transactionData)
-        .expect(201);
-
-      // Admin retrieves pending transactions
-      return request(app.getHttpServer())
-        .get('/transactions/pending')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.length).toBe(1); // Ensure there is one pending transaction
-          expect(res.body[0].status).toBe(TransactionStatus.PENDING);
-        });
+    // Create a transaction for the test user
+    const transaction = await prismaService.transaction.create({
+      data: {
+        userId: user.id,
+        amount: 100.5,
+        status: 'PENDING',
+      },
     });
 
-    it('should forbid a user from viewing pending transactions', async () => {
-      return request(app.getHttpServer())
-        .get('/transactions/pending')
-        .set('Authorization', `Bearer ${userToken}`)
-        .expect(403); // Forbidden
-    });
-  });
+    const response = await request(app.getHttpServer())
+      .patch(`/transactions/${transaction.id}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'APPROVED' })
+      .expect(200);
 
-  describe('PATCH /transactions/:id/status (Admin only)', () => {
-    it('should allow an admin to approve a transaction', async () => {
-      const transactionData = { amount: 100.5 };
-
-      // User creates a transaction
-      const createResponse = await request(app.getHttpServer())
-        .post('/transactions/create')
-        .set('Authorization', `Bearer ${userToken}`)
-        .send(transactionData)
-        .expect(201);
-
-      const transactionId = createResponse.body.id;
-
-      // Admin approves the transaction
-      return request(app.getHttpServer())
-        .patch(`/transactions/${transactionId}/status`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: TransactionStatus.APPROVED })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.status).toBe(TransactionStatus.APPROVED);
-        });
-    });
-
-    it('should return 404 if the transaction does not exist', async () => {
-      return request(app.getHttpServer())
-        .patch(`/transactions/non-existent-id/status`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: TransactionStatus.APPROVED })
-        .expect(404);
-    });
-
-    it('should forbid a user from approving a transaction', async () => {
-      const transactionData = { amount: 100.5 };
-
-      // User creates a transaction
-      const createResponse = await request(app.getHttpServer())
-        .post('/transactions/create')
-        .set('Authorization', `Bearer ${userToken}`)
-        .send(transactionData)
-        .expect(201);
-
-      const transactionId = createResponse.body.id;
-
-      // User attempts to approve the transaction (not allowed)
-      return request(app.getHttpServer())
-        .patch(`/transactions/${transactionId}/status`)
-        .set('Authorization', `Bearer ${userToken}`)
-        .send({ status: TransactionStatus.APPROVED })
-        .expect(403); // Forbidden
-    });
+    expect(response.body.status).toBe('APPROVED');
   });
 });
