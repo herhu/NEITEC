@@ -1,114 +1,261 @@
-### Project Summary: **Transaction Validation System**
-
-This project involves a **NestJS**-based backend application that allows **users** to create transactions and **admins** to validate and update the status of those transactions. It incorporates **authentication**, **authorization**, **transaction management**, and follows best practices for **error handling**, **validation**, and **API documentation** using **Swagger**.
+### Project: Transaction Validation System
 
 ---
 
-### Key Features:
+#### Overview
 
-1. **User Authentication and Authorization**:
-   - **JWT-based authentication**: Users log in and receive a JWT token, which is required to access protected routes.
-   - **Role-based access control (RBAC)**: Admin users have additional permissions to validate transactions, while normal users can only create and view their own transactions.
-   - **Guards**: The system uses guards (`JwtAuthGuard`, `RoleGuard`) to protect routes and ensure that only authorized users can perform specific actions.
-
-2. **Transaction Management**:
-   - **Create Transactions**: Authenticated users can create transactions, which start with a default status of `PENDING`.
-   - **View Transactions**: Users can view all of their own transactions.
-   - **Admin Actions**: Admins can:
-     - View all **pending** transactions.
-     - **Approve** or **reject** pending transactions by updating their status.
-   
-3. **Validation and Error Handling**:
-   - **DTO Validation**: Input data is validated using **class-validator** decorators in the DTOs, ensuring the incoming data meets required standards.
-   - **Service-Level Error Handling**: The service layer catches specific errors, such as database uniqueness violations or missing records (e.g., trying to update a non-existent transaction).
-   - **Global Exception Filter**: A centralized exception filter ensures that all unhandled errors are caught, logged, and returned in a consistent format without leaking sensitive information.
-
-4. **Swagger API Documentation**:
-   - **Auto-generated API documentation**: Swagger is integrated to provide an interactive API interface for developers. The documentation includes descriptions of each endpoint, request/response structures, and examples.
-   - **Bearer token authentication in Swagger**: Swagger supports using JWT tokens to test protected routes.
+The **Transaction Validation System** is a backend API built with **NestJS**, **TypeScript**, **Prisma**, **JWT** authentication, **PostgreSQL**, and several other modern backend tools. It allows users to create transaction requests, which must be approved or rejected by an admin. The system is designed with a focus on security, scalability, and clean architecture. The project also includes a robust CI/CD pipeline for automated testing, linting, and deployment.
 
 ---
 
-### Project Architecture:
+### Project Structure
 
-1. **Controllers**:
-   - **AuthController**: Handles user login, issuing JWT tokens upon successful authentication.
-   - **UsersController**: Allows users and admins to register new accounts with role-based access.
-   - **TransactionsController**: 
-     - Allows users to create transactions.
-     - Allows admins to view pending transactions and update transaction statuses.
-
-2. **Services**:
-   - **AuthService**: Responsible for validating user credentials and generating JWT tokens.
-   - **UsersService**: Handles user creation, password hashing, and user retrieval.
-   - **TransactionsService**: Manages transaction creation, retrieval, and status updates.
-
-3. **Modules**:
-   - **AuthModule**: Bundles the authentication logic, including JWT strategy and guards.
-   - **UsersModule**: Manages user-related functionalities like registration and credential validation.
-   - **TransactionsModule**: Handles all transaction-related operations, including creation and status updates.
-   - **PrismaModule**: Manages interaction with the **Prisma ORM** for database access.
-
-4. **Common Utilities**:
-   - **Guards**:
-     - **JwtAuthGuard**: Protects routes by requiring valid JWT tokens.
-     - **RoleGuard**: Restricts access to specific routes based on user roles (e.g., only admins can approve/reject transactions).
-   - **Decorators**:
-     - **CurrentUser**: Custom decorator that extracts the authenticated user's data from the request.
-   - **Filters**:
-     - **HttpExceptionFilter**: A global error handler that formats error responses and logs internal server errors.
-   
----
-
-### Notable Implementations:
-
-1. **Authentication & Authorization**:
-   - **JWT Strategy**: Secure login mechanism using JWT tokens to authenticate users.
-   - **Role-Based Access**: Admin-only routes are protected using custom role guards.
-
-2. **Transaction Lifecycle**:
-   - Users create transactions that start with a `PENDING` status.
-   - Admins can view all pending transactions and either approve (`APPROVED`) or reject (`REJECTED`) them.
-   - Each transaction is linked to the user who created it and can only be accessed by that user or an admin.
-
-3. **DTOs with Validation**:
-   - **`CreateUserDto`**: Validates email, password, and role during user registration.
-   - **`LoginDto`**: Validates email and password during login.
-   - **`CreateTransactionDto`**: Validates the amount during transaction creation, ensuring it's a positive number.
-
-4. **Error Handling**:
-   - **Global Exception Filter**: Standardizes error handling and logging.
-   - **Service-Level Error Handling**: Catches specific errors such as:
-     - **Unique constraint violations** (e.g., attempting to register with an existing email).
-     - **Record not found errors** (e.g., trying to update a non-existent transaction).
-   - **Custom Exceptions**: Provides meaningful HTTP exceptions like `BadRequestException`, `ConflictException`, and `NotFoundException`.
-
-5. **Swagger Documentation**:
-   - Each route is documented with descriptions, expected request/response formats, and HTTP status codes.
-   - JWT authentication is built into Swagger, allowing API testing with protected endpoints.
+```
+├── src
+│   ├── auth                    # Authentication module
+│   │   ├── auth.controller.ts   # Handles login requests
+│   │   ├── auth.service.ts      # Implements login logic
+│   │   ├── jwt.strategy.ts      # JWT strategy for validating tokens
+│   │   └── local.strategy.ts    # Local strategy for validating credentials
+│   ├── common                   # Common utilities and decorators
+│   │   └── decorators
+│   │       └── current-user.decorator.ts
+│   ├── prisma                   # Prisma configuration and database access
+│   │   └── prisma.service.ts
+│   ├── transactions             # Transactions module
+│   │   ├── dto
+│   │   │   └── create-transaction.dto.ts
+│   │   ├── transactions.controller.ts
+│   │   ├── transactions.service.ts
+│   └── users                    # Users module
+│       ├── dto
+│       │   └── create-user.dto.ts
+│       ├── users.controller.ts
+│       └── users.service.ts
+├── test                         # Contains unit and e2e tests
+│   ├── auth.e2e-spec.ts
+│   ├── transactions.e2e-spec.ts
+│   └── users.e2e-spec.ts
+├── prisma                       # Prisma schema
+│   └── schema.prisma
+├── Dockerfile                   # Docker configuration file
+├── .env                         # Environment variables
+├── .env.test                    # Test environment variables
+├── .eslintrc.js                 # ESLint configuration
+├── jest.config.js               # Jest configuration
+└── README.md                    # Project documentation
+```
 
 ---
 
-### Technical Stack:
+### Features
 
-- **NestJS**: A progressive Node.js framework for building efficient, scalable server-side applications.
-- **TypeScript**: Used throughout the project for type safety and improved developer experience.
-- **Prisma**: An ORM that simplifies database interactions with PostgreSQL.
-- **JWT (JSON Web Tokens)**: Used for secure user authentication.
-- **Swagger**: Provides an interactive API documentation interface.
-- **Bcrypt**: For password hashing and secure user authentication.
-- **class-validator**: Ensures data validation in DTOs to keep input data clean and safe.
-- **Docker**: The project can be containerized using Docker for easy deployment and scalability.
+- **User Roles**: Users can either have the role of `USER` or `ADMIN`. Only admins can approve or reject transactions.
+- **Transaction Lifecycle**: Users can create transactions, and admins can view pending transactions to approve or reject them.
+- **Authentication**: JWT-based authentication using `@nestjs/passport` for secure API endpoints.
+- **Database**: **Prisma ORM** with **PostgreSQL** for managing users and transactions.
+- **CI/CD Pipeline**: Automated testing, linting, and production build through GitHub Actions.
+- **Dockerized Environment**: The application is containerized with **Docker**, making it easy to run in any environment.
 
 ---
 
-### Future Improvements:
+### Instructions
 
-1. **Unit and E2E Testing**: Implement unit tests for services and end-to-end (E2E) tests for controllers to ensure robust test coverage.
-2. **Notification System**: Integrate push notifications (currently emulated) for transaction status updates to notify users of changes.
-3. **Rate Limiting**: Implement rate limiting to prevent abuse, especially on critical endpoints like login and transaction creation.
-4. **Database Optimizations**: Add indexes to frequently queried fields (e.g., `status`, `userId`) in the transactions table for performance optimization.
+#### Prerequisites
+
+- **Node.js** (v18 or later)
+- **PostgreSQL** (v13 or later)
+- **Docker** (for containerization)
+- **npm**
+
+#### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/your-repository/transaction-validation-system.git
+   ```
+
+2. Navigate into the project directory:
+
+   ```bash
+   cd transaction-validation-system
+   ```
+
+3. Install the dependencies:
+
+   ```bash
+   npm install
+   ```
+
+4. Set up your environment variables:
+
+   - Create a `.env` file from `.env.example`:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   - Edit `.env` to configure your **PostgreSQL** database connection.
+
+5. Generate the Prisma client:
+
+   ```bash
+   npx prisma generate
+   ```
+
+6. Apply Prisma migrations:
+
+   ```bash
+   npx prisma migrate deploy
+   ```
 
 ---
 
-This project follows **best practices** in **security**, **error handling**, **code organization**, and **API design**, ensuring that it's both **scalable** and **maintainable**.
+### Running the Application
+
+#### Development Mode
+
+1. Start the application in development mode:
+
+   ```bash
+   npm run start:dev
+   ```
+
+2. The server will start at `http://localhost:3000`.
+
+#### Production Mode (Docker)
+
+1. Build the Docker image:
+
+   ```bash
+   docker build -t transaction-validation-system .
+   ```
+
+2. Run the Docker container:
+
+   ```bash
+   docker run -d -p 3000:3000 --name transaction-app-container transaction-validation-system
+   ```
+
+3. The application will be available at `http://localhost:3000`.
+
+#### Testing
+
+- **Unit Tests**:
+
+   Run unit tests with:
+
+   ```bash
+   npm run test:unit
+   ```
+
+- **End-to-End (E2E) Tests**:
+
+   Run E2E tests with:
+
+   ```bash
+   npm run test:e2e
+   ```
+
+- **Linting**:
+
+   Run linting checks with:
+
+   ```bash
+   npm run lint
+   ```
+
+#### CI/CD Pipeline
+
+This project includes a **GitHub Actions** CI/CD pipeline. The pipeline performs the following steps:
+
+1. **Container Setup**: Starts a PostgreSQL container for tests.
+2. **Linting**: Runs `npm run lint` to check code formatting.
+3. **Unit Testing**: Runs unit tests with `npm run test:unit`.
+4. **End-to-End Testing**: Runs E2E tests with `npm run test:e2e`.
+5. **Build**: Builds the NestJS app using `npm run build`.
+6. **Production Docker Container**: Builds and runs the Docker container.
+
+You can review the workflow file in `.github/workflows/ci.yml`.
+
+---
+
+### Project Details
+
+- **Technology Stack**:
+  - **NestJS**: Backend framework.
+  - **Prisma**: ORM for PostgreSQL.
+  - **JWT**: Authentication using `passport-jwt`.
+  - **Docker**: Containerization of the application.
+  - **GitHub Actions**: CI/CD pipeline for automated testing and deployment.
+
+---
+
+### API Documentation
+
+The API documentation is automatically generated with **Swagger**.
+
+Once the server is running, access the Swagger documentation at:
+
+```
+http://localhost:3000/api
+```
+
+### CI/CD Setup
+
+The pipeline for the project is set up using **GitHub Actions**. Every push or pull request to the `main` branch triggers the following steps:
+
+1. **Check out the code**.
+2. **Set up Node.js**.
+3. **Install dependencies** and cache them.
+4. **Run linting** using `ESLint`.
+5. **Run unit tests** and **end-to-end tests** using `Jest`.
+6. **Build the Docker image** and deploy it.
+
+---
+
+### Running Tests Locally
+
+To run the tests locally:
+
+1. **Unit Tests**:
+
+   ```bash
+   npm run test:unit
+   ```
+
+2. **E2E Tests**:
+
+   You can either run them locally with a test database or with Docker:
+
+   ```bash
+   npm run test:e2e
+   ```
+
+---
+
+### Notes
+
+- **Environment Variables**: Make sure to properly configure your `.env` file with the correct database credentials and JWT secret.
+- **Health Check**: The application provides a `/health` endpoint to ensure the server is running correctly.
+
+---
+
+### Contribution Guidelines
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/your-feature`).
+3. Commit your changes (`git commit -m 'Add new feature'`).
+4. Push to the branch (`git push origin feature/your-feature`).
+5. Open a Pull Request.
+
+---
+
+### License
+
+This project is licensed under the MIT License.
+
+---
+
+Feel free to modify this document as per your project's final requirements and replace placeholder sections like GitHub repository URL, Docker image name, etc.
