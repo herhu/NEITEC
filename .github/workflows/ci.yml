@@ -41,11 +41,11 @@ jobs:
 
       - name: Init migrations for test database
         run: |
-          dotenv -e .env.test -- npx prisma migrate dev --name init --schema=prisma/schema.prisma
+          export $(cat .env.test | xargs) && npx prisma migrate dev --name init --schema=prisma/schema.prisma
 
       - name: Deploy migrations for test database
         run: |
-          dotenv -e .env.test -- npx prisma migrate deploy --schema=prisma/schema.prisma
+           export $(cat .env.test | xargs) && npx prisma migrate deploy --schema=prisma/schema.prisma
 
       - name: Run unit tests
         run: npm run test:unit
