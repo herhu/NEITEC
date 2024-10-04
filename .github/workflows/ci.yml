@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:  # Habilitar ejecución manual
 
 jobs:
   build-and-test:
@@ -53,12 +54,6 @@ jobs:
       - name: Run e2e tests
         run: npm run test:e2e
 
-      # - name: Install Taurus
-      #   run: sudo apt-get update && sudo apt-get install -y python3-pip && pip3 install bzt
-
-      # - name: Run Load Test with Taurus
-      #   run: bzt load_test.yml 
-
       # - name: Build Docker image
       #   run: docker build -t my-nest-app .
 
@@ -67,3 +62,41 @@ jobs:
 
       # - name: Health check (production)
       #   run: curl --fail http://localhost:3000/health
+
+  sonar-analysis:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SonarQube Scanner
+        run: |
+          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+          unzip sonar-scanner.zip
+          export PATH=$PATH:$PWD/sonar-scanner-4.6.2.2472-linux/bin
+
+      - name: Run SonarQube Analysis
+        env:
+          SONAR_HOST_URL: "http://localhost:9000"
+          SONAR_LOGIN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=my-nest-app \
+            -Dsonar.sources=./src \
+            -Dsonar.tests=./test \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+  taurus-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Install Taurus
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3-pip && pip3 install bzt
+
+      - name: Run Load Test with Taurus
+        run: |
+          bzt load_test.yml

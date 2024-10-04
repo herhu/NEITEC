@@ -1,0 +1,6 @@
+projectKey=transaction-validation-system
+serverUrl=http://localhost:9000
+serverVersion=10.7.0.96327
+dashboardUrl=http://localhost:9000/dashboard?id=transaction-validation-system
+ceTaskId=4104d53a-8ef1-4129-9d05-6db2fcd1a981
+ceTaskUrl=http://localhost:9000/api/ce/task?id=4104d53a-8ef1-4129-9d05-6db2fcd1a981
