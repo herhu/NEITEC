@@ -45,13 +45,19 @@ jobs:
 
       - name: Deploy migrations for test database
         run: |
-           export $(cat .env.test | xargs) && npx prisma migrate deploy --schema=prisma/schema.prisma
+          export $(cat .env.test | xargs) && npx prisma migrate deploy --schema=prisma/schema.prisma
 
       - name: Run unit tests
         run: npm run test:unit
 
       - name: Run e2e tests
         run: npm run test:e2e
+
+      - name: Install Taurus
+        run: sudo apt-get update && sudo apt-get install -y python3-pip && pip3 install bzt
+
+      - name: Run Load Test with Taurus
+        run: bzt load_test.yml 
 
       # - name: Build Docker image
       #   run: docker build -t my-nest-app .

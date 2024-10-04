@@ -1,0 +1,77 @@
+execution:
+  - executor: jmeter  # Usa JMeter para las pruebas de carga
+    concurrency: 200   # 200 usuarios concurrentes
+    ramp-up: 60s       # Incrementa a 200 usuarios en 60 segundos
+    hold-for: 5m       # Mantén la carga durante 5 minutos
+    iterations: 1000   # 1000 iteraciones por usuario
+    scenario: scenario_login  # Primer escenario: autenticación
+  - executor: jmeter
+    concurrency: 300
+    ramp-up: 1m
+    hold-for: 10m
+    scenario: scenario_transactions
+
+scenarios:
+  scenario_login:
+    # Escenario de autenticación
+    requests:
+      - label: "Login Request"  # Etiqueta en el informe
+        url: "http://localhost:3000/auth/login"
+        method: POST
+        body:
+          email: "user@example.com"
+          password: "password123"
+        headers:
+          Content-Type: "application/json"
+        extract-jsonpath:  # Extraer token JWT de la respuesta
+          access_token: "$.access_token"
+        assert:  # Verificar que la respuesta contiene el token
+          - contains: "access_token"
+            message: "Login failed, no access token found"
+
+  scenario_transactions:
+    # Escenario de creación de transacciones después de autenticarse
+    default-address: "http://localhost:3000"
+    headers:
+      Authorization: "Bearer ${access_token}"
+    requests:
+      - label: "Create Transaction"
+        url: "/transactions/create"
+        method: POST
+        body:
+          amount: 250.50
+        headers:
+          Content-Type: "application/json"
+        assert:
+          - contains: "PENDING"
+            message: "Transaction creation failed, status not pending"
+
+      - label: "Get Transactions"
+        url: "/transactions"
+        method: GET
+        assert:
+          - "contains: \"amount\": 250.50"
+            message: "Transaction amount mismatch"
+
+      - label: "Get Pending Transactions (Admin)"
+        url: "/transactions/pending"
+        method: GET
+        headers:
+          Authorization: "Bearer ${admin_token}"
+        assert:
+          - "contains: \"status\": \"PENDING\""
+            message: "No pending transactions found"
+
+reporting:
+  - module: blazemeter  # Usar Blazemeter para informes avanzados
+    test: "Advanced Load Test"
+    project: "Transaction Project"
+    note: "Simulación de carga avanzada para múltiples endpoints"
+  - module: final-stats  # Imprimir estadísticas finales en consola
+    summary: true
+  - module: console
+    disable: false
+
+modules:
+  blazemeter:
+    token: "YOUR_BLAZEMETER_API_TOKEN"  # API token para subir los resultados a Blazemeter
