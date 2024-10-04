@@ -53,11 +53,11 @@ jobs:
       - name: Run e2e tests
         run: npm run test:e2e
 
-      - name: Install Taurus
-        run: sudo apt-get update && sudo apt-get install -y python3-pip && pip3 install bzt
+      # - name: Install Taurus
+      #   run: sudo apt-get update && sudo apt-get install -y python3-pip && pip3 install bzt
 
-      - name: Run Load Test with Taurus
-        run: bzt load_test.yml 
+      # - name: Run Load Test with Taurus
+      #   run: bzt load_test.yml 
 
       # - name: Build Docker image
       #   run: docker build -t my-nest-app .

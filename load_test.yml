@@ -50,7 +50,7 @@ scenarios:
         url: "/transactions"
         method: GET
         assert:
-          - "contains: \"amount\": 250.50"
+          - contains: "\"amount\": 250.50"  # Corrected
             message: "Transaction amount mismatch"
 
       - label: "Get Pending Transactions (Admin)"
@@ -59,19 +59,19 @@ scenarios:
         headers:
           Authorization: "Bearer ${admin_token}"
         assert:
-          - "contains: \"status\": \"PENDING\""
+          - contains: "\"status\": \"PENDING\""  # Corrected
             message: "No pending transactions found"
 
-reporting:
-  - module: blazemeter  # Usar Blazemeter para informes avanzados
-    test: "Advanced Load Test"
-    project: "Transaction Project"
-    note: "Simulación de carga avanzada para múltiples endpoints"
-  - module: final-stats  # Imprimir estadísticas finales en consola
-    summary: true
-  - module: console
-    disable: false
+# reporting:
+#   - module: blazemeter  # Usar Blazemeter para informes avanzados
+#     test: "Advanced Load Test"
+#     project: "Transaction Project"
+#     note: "Simulación de carga avanzada para múltiples endpoints"
+#   - module: final-stats  # Imprimir estadísticas finales en consola
+#     summary: true
+#   - module: console
+#     disable: false
 
-modules:
-  blazemeter:
-    token: "YOUR_BLAZEMETER_API_TOKEN"  # API token para subir los resultados a Blazemeter
+# modules:
+#   blazemeter:
+#     token:  ${BLAZMETER}  # API token para subir los resultados a Blazemeter
