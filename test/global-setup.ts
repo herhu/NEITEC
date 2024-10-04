@@ -1,4 +1,3 @@
-// test/global-setup.ts
 import { execSync } from 'child_process';
 
 module.exports = async () => {

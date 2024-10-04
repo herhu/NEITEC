@@ -1,5 +1,3 @@
-// src/transactions/dto/create-transaction.dto.ts
-
 import { IsNumber, IsPositive } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger'; // Import Swagger decorators
 

@@ -1,5 +1,3 @@
-// test/transactions.e2e-spec.ts
-
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';

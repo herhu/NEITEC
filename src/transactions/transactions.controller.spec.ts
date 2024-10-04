@@ -1,5 +1,3 @@
-// src/transactions/transactions.controller.spec.ts
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';

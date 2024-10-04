@@ -1,7 +1,5 @@
-// src/users/dto/create-user.dto.ts
-
 import { IsEmail, IsString, IsOptional, IsEnum } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'; // Import Swagger decorators
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'; 
 import { Role } from '@prisma/client';
 
 export class CreateUserDto {
@@ -15,6 +13,6 @@ export class CreateUserDto {
 
   @ApiPropertyOptional({ enum: Role, description: 'The role of the user (USER or ADMIN)' })
   @IsOptional()
-  @IsEnum(Role) // Validate that the role is either 'USER' or 'ADMIN'
+  @IsEnum(Role) 
   role?: Role;
 }

@@ -1,5 +1,3 @@
-// src/users/users.service.ts
-
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // PrismaService for database access
 import { User, Role } from '@prisma/client'; // Include Role from Prisma schema

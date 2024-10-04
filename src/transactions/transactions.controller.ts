@@ -1,5 +1,3 @@
-// src/transactions/transactions.controller.ts
-
 import {
   Controller,
   Post,
@@ -17,9 +15,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // Protect endpoints with
 import { CurrentUser } from '../common/decorators/current-user.decorator'; // Custom decorator to get the current user
 import { RoleGuard } from '../auth/role.guard'; // Role guard to restrict access for certain roles
 import { Roles } from '../auth/roles.decorator'; // Role decorator to specify roles
-import { TransactionStatus, User } from '@prisma/client'; // Import TransactionStatus and User types
+import { TransactionStatus, User } from '@prisma/client'; 
 
-@ApiTags('Transactions') // Group this controller under "Transactions" in Swagger
+@ApiTags('Transactions')
 @ApiBearerAuth() // Enable JWT authentication in Swagger
 @Controller('transactions')
 export class TransactionsController {

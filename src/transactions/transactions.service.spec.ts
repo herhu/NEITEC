@@ -1,5 +1,3 @@
-// src/transactions/transactions.service.spec.ts
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionsService } from './transactions.service';
 import { PrismaService } from '../prisma/prisma.service';
