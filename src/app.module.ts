@@ -17,5 +17,6 @@ import { TransactionsModule } from './transactions/transactions.module';
     UsersModule,
     TransactionsModule,
   ],
+  
 })
 export class AppModule {}

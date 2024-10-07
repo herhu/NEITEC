@@ -4,15 +4,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet'; // Helmet para seguridad de encabezados HTTP
-import * as csurf from 'csurf'; // CSRF protection
-import { ThrottlerGuard } from '@nestjs/throttler'; // Rate Limiting
 import { JwtAuthGuard } from './auth/jwt-auth.guard'; // JWT Authentication
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  // Protección Rate Limiting para evitar abuso (usando ThrottlerGuard)
-  app.useGlobalGuards(app.get(ThrottlerGuard));
 
   // Habilitar Helmet para mejorar la seguridad HTTP (cabezeras seguras)
   app.use(helmet());
@@ -25,16 +20,10 @@ async function bootstrap() {
   });
   
 
-  // Protección CSRF (solo útil si usas autenticación basada en cookies)
-  app.use(csurf());
 
   // Filtro de excepciones globales
   app.useGlobalFilters(new HttpExceptionFilter());
 
-
-
-  // Autenticación JWT global (si deseas aplicar a nivel global)
-  app.useGlobalGuards(new JwtAuthGuard());
 
   // Tubo de validación global para sanitizar y validar datos entrantes
   app.useGlobalPipes(

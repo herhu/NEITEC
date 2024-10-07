@@ -1,4 +1,4 @@
-### Project: Transaction Validation System
+### Project: Transaction Validation System: NEITEC
 
 ---
 
@@ -73,13 +73,13 @@ The **Transaction Validation System** is a backend API built with **NestJS**, **
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-repository/transaction-validation-system.git
+   https://github.com/herhu/NEITEC.git
    ```
 
 2. Navigate into the project directory:
 
    ```bash
-   cd transaction-validation-system
+   cd NEITEC
    ```
 
 3. Install the dependencies:
@@ -90,10 +90,10 @@ The **Transaction Validation System** is a backend API built with **NestJS**, **
 
 4. Set up your environment variables:
 
-   - Create a `.env` file from `.env.example`:
+   - Create a `.env` file from `.env.test`:
 
    ```bash
-   cp .env.example .env
+   cp .env.test .env
    ```
 
    - Edit `.env` to configure your **PostgreSQL** database connection.
@@ -107,7 +107,11 @@ The **Transaction Validation System** is a backend API built with **NestJS**, **
 6. Apply Prisma migrations:
 
    ```bash
-   npx prisma migrate deploy
+   npm run test:e2e:migrate:prod
+   ```
+
+   ```bash
+   npm run test:e2e:migrate:dev
    ```
 
 ---

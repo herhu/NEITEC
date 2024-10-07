@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // PrismaService for database access
 import { TransactionStatus } from '@prisma/client'; // TransactionStatus enum from Prisma schema
 import { CreateTransactionDto } from './dto/create-transaction.dto'; // DTO for transaction creation
@@ -34,6 +34,11 @@ export class TransactionsService {
 
     if (!transaction) {
       throw new NotFoundException(`Transaction with ID ${transactionId} not found`);
+    }
+
+    // Optional: Only allow update if status is PENDING
+    if (transaction.status !== TransactionStatus.PENDING) {
+      throw new BadRequestException('Transaction is already approved or rejected');
     }
 
     return this.prisma.transaction.update({

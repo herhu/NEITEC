@@ -10,12 +10,12 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger'; // Import Swagger decorators
 import { TransactionsService } from './transactions.service';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { CreateTransactionDto, UpdateTransactionStatusDto } from './dto/create-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // Protect endpoints with JWT authentication
 import { CurrentUser } from '../common/decorators/current-user.decorator'; // Custom decorator to get the current user
 import { RoleGuard } from '../auth/role.guard'; // Role guard to restrict access for certain roles
 import { Roles } from '../auth/roles.decorator'; // Role decorator to specify roles
-import { TransactionStatus, User } from '@prisma/client'; 
+import { User } from '@prisma/client'; 
 
 @ApiTags('Transactions')
 @ApiBearerAuth() // Enable JWT authentication in Swagger
@@ -58,12 +58,12 @@ export class TransactionsController {
   @ApiResponse({ status: 200, description: 'Transaction status updated successfully' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles('ADMIN') // Restrict to admin role
+  @Roles('ADMIN')
   @Patch(':id/status')
   async updateTransactionStatus(
     @Param('id') id: string,
-    @Body() body: { status: TransactionStatus },
+    @Body() updateTransactionStatusDto: UpdateTransactionStatusDto, // Use the new DTO
   ) {
-    return this.transactionsService.updateTransactionStatus(id, body.status);
+    return this.transactionsService.updateTransactionStatus(id, updateTransactionStatusDto.status);
   }
 }
